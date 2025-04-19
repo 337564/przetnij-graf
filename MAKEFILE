@@ -1,0 +1,19 @@
+CC = gcc
+CFLAGS = -Wall -g
+
+# Output
+TARGET = przetnij_graf.exe
+
+SRC = main.c graph.c split.c
+OBJ = main.o graph.o split.o
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+	$(CC) -o $@ $^
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	del /Q *.o *.exe
