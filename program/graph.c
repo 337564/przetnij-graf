@@ -7,6 +7,7 @@ Graph *createGraph(int numVertices, int numEdges) {
     Graph *graph = (Graph *)malloc(sizeof(Graph));
     graph->numVertices = numVertices;
     graph->numEdges = numEdges;
+    graph->splitCount = -1;
     graph->vertices = (Vertex *)malloc(numVertices * sizeof(Vertex));
     for (int i = 0; i < numVertices; i++) {
         graph->vertices[i].weight = 0.0;
@@ -28,10 +29,11 @@ void freeGraph(Graph *graph) {
 }
 
 Graph *graphFromString(const char *str) {
-    int numVertices, numEdges;
-    sscanf(str, "%d %d", &numVertices, &numEdges);
+    int splitCount, numVertices, numEdges;
+    sscanf(str, "%d %d %d", &splitCount, &numVertices, &numEdges);
 
     Graph *graph = createGraph(numVertices, numEdges);
+    graph->splitCount = splitCount;
 
     const char *verticesStart = strchr(str, '\n') + 1;
     const char *edgesStart = strchr(verticesStart, '\n') + 1;
@@ -66,7 +68,7 @@ char *graphToString(const Graph *graph) {
     char *buffer = (char *)malloc(bufferSize);
     char *ptr = buffer;
 
-    ptr += sprintf(ptr, "%d %d\n", graph->numVertices, graph->numEdges);
+    ptr += sprintf(ptr, "%d %d %d\n", graph->splitCount, graph->numVertices, graph->numEdges);
 
     for (int i = 0; i < graph->numVertices; i++) {
         ptr += sprintf(ptr, "%.2f", graph->vertices[i].weight);
@@ -156,6 +158,8 @@ Graph *copyGraph(const Graph *original) {
         copy->edges[i].src = original->edges[i].src;
         copy->edges[i].dest = original->edges[i].dest;
     }
+
+    copy->splitCount = original->splitCount;
 
     return copy;
 }

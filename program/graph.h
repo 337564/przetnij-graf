@@ -15,6 +15,7 @@ typedef struct Graph {
     int numEdges;
     Vertex *vertices;
     Edge *edges;
+    int splitCount;
 } Graph;
 
 Graph *createGraph(int numVertices, int numEdges);

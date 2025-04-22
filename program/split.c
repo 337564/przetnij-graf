@@ -102,5 +102,6 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
     newGraph->edges = realloc(newGraph->edges, newEdgeCount * sizeof(Edge));
 
     free(partitionAssignments);
+    newGraph->splitCount = number;
     return newGraph;
 }
