@@ -1,6 +1,6 @@
 # Binarny Format Pliku Grafu
 
-Ten dokument opisuje binarny format pliku używany do serializacji i zapisu struktury `Graph` zdefiniowanej w `graph.h`.
+Ten dokument opisuje binarny format pliku używany do serializacji i zapisu struktury Graph
 
 Format binarny zapisywany jest w następującej kolejności:
 
