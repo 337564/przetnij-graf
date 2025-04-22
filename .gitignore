@@ -54,3 +54,6 @@ dkms.conf
 # Graph files
 #*.txt
 #*.bin
+
+# VSCode files
+.vscode/
