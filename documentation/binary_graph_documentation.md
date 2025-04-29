@@ -6,8 +6,7 @@ Format binarny zapisywany jest w następującej kolejności:
 
 1. Liczba wierzchołków (int)
 2. Liczba krawędzi (int)
-3. Wagi wierzchołków (float × `numVertices`)
-4. Lista krawędzi (pary int × `numEdges`)
+3. Lista krawędzi (pary int × `numEdges`)
 
 Wszystkie dane zapisywane są w formacie little-endian.
 
@@ -17,7 +16,6 @@ Wszystkie dane zapisywane są w formacie little-endian.
 |-------------|---------------|------------------------------------------------------------|
 | int         | numVertices   | Liczba wierzchołków w grafie                               |
 | int         | numEdges      | Liczba krawędzi w grafie                                   |
-| float       | weight[i]     | Waga i-tego wierzchołka (indeksowany od 0)                 |
 | (int, int)  | edge[i]       | Para (źródło, cel) dla i-tej krawędzi (src[i], dest[i])    |
 
 ## Uwagi

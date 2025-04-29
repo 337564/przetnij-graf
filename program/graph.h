@@ -1,10 +1,6 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-typedef struct Vertex {
-    float weight;
-} Vertex;
-
 typedef struct Edge {
     int src;
     int dest;
@@ -13,7 +9,6 @@ typedef struct Edge {
 typedef struct Graph {
     int numVertices;
     int numEdges;
-    Vertex *vertices;
     Edge *edges;
     int splitCount;
 } Graph;

@@ -8,10 +8,6 @@ Graph *createGraph(int numVertices, int numEdges) {
     graph->numVertices = numVertices;
     graph->numEdges = numEdges;
     graph->splitCount = -1;
-    graph->vertices = (Vertex *)malloc(numVertices * sizeof(Vertex));
-    for (int i = 0; i < numVertices; i++) {
-        graph->vertices[i].weight = 0.0;
-    }
     graph->edges = (Edge *)malloc(numEdges * sizeof(Edge));
     for (int i = 0; i < numEdges; i++) {
         graph->edges[i].src = -1;
@@ -22,7 +18,6 @@ Graph *createGraph(int numVertices, int numEdges) {
 
 void freeGraph(Graph *graph) {
     if (graph) {
-        free(graph->vertices);
         free(graph->edges);
         free(graph);
     }
@@ -35,29 +30,16 @@ Graph *graphFromString(const char *str) {
     Graph *graph = createGraph(numVertices, numEdges);
     graph->splitCount = splitCount;
 
-    const char *verticesStart = strchr(str, '\n') + 1;
-    const char *edgesStart = strchr(verticesStart, '\n') + 1;
-
-    size_t verticesLineLength = edgesStart - verticesStart - 1;
-    char *verticesLine = (char *)malloc(verticesLineLength + 1);
-    strncpy(verticesLine, verticesStart, verticesLineLength);
-    verticesLine[verticesLineLength] = '\0';
+    const char *edgesStart = strchr(str, '\n') + 1;
 
     char *edgesLine = strdup(edgesStart);
 
-    char *token = strtok(verticesLine, ",");
-    for (int i = 0; i < numVertices; i++) {
-        graph->vertices[i].weight = atof(token);
-        token = strtok(NULL, ",");
-    }
-
-    token = strtok(edgesLine, ",");
+    char *token = strtok(edgesLine, ",");
     for (int i = 0; i < numEdges; i++) {
         sscanf(token, "%d-%d", &graph->edges[i].src, &graph->edges[i].dest);
         token = strtok(NULL, ",");
     }
 
-    free(verticesLine);
     free(edgesLine);
 
     return graph;
@@ -69,14 +51,6 @@ char *graphToString(const Graph *graph) {
     char *ptr = buffer;
 
     ptr += sprintf(ptr, "%d %d %d\n", graph->splitCount, graph->numVertices, graph->numEdges);
-
-    for (int i = 0; i < graph->numVertices; i++) {
-        ptr += sprintf(ptr, "%.2f", graph->vertices[i].weight);
-        if (i < graph->numVertices - 1) {
-            ptr += sprintf(ptr, ",");
-        }
-    }
-    ptr += sprintf(ptr, "\n");
 
     for (int i = 0; i < graph->numEdges; i++) {
         ptr += sprintf(ptr, "%d-%d", graph->edges[i].src, graph->edges[i].dest);
@@ -131,10 +105,6 @@ void graphToBinaryFile(const Graph *graph, const char *filename) {
     fwrite(&graph->numVertices, sizeof(int), 1, file);
     fwrite(&graph->numEdges, sizeof(int), 1, file);
 
-    for (int i = 0; i < graph->numVertices; i++) {
-        fwrite(&graph->vertices[i].weight, sizeof(float), 1, file);
-    }
-
     for (int i = 0; i < graph->numEdges; i++) {
         fwrite(&graph->edges[i].src, sizeof(int), 1, file);
         fwrite(&graph->edges[i].dest, sizeof(int), 1, file);
@@ -149,10 +119,6 @@ Graph *copyGraph(const Graph *original) {
     }
 
     Graph *copy = createGraph(original->numVertices, original->numEdges);
-
-    for (int i = 0; i < original->numVertices; i++) {
-        copy->vertices[i].weight = original->vertices[i].weight;
-    }
 
     for (int i = 0; i < original->numEdges; i++) {
         copy->edges[i].src = original->edges[i].src;

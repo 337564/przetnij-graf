@@ -22,7 +22,7 @@ float grow_partition(Graph *originalGraph, int partitionId, int vertexCount, flo
         if (!isUnassigned[currentVertex]) continue;
         partitionAssignments[currentVertex] = partitionId;
         isUnassigned[currentVertex] = 0;
-        partitionWeightSum += originalGraph->vertices[currentVertex].weight;
+        partitionWeightSum += 1.0f;
         for (int edgeIndex = 0; edgeIndex < originalGraph->numEdges; edgeIndex++) {
             int adjacentVertex = -1;
             if (originalGraph->edges[edgeIndex].src == currentVertex)
@@ -56,7 +56,7 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
 
     float totalWeight = 0;
     for (int i = 0; i < vertexCount; i++) {
-        totalWeight += originalGraph->vertices[i].weight;
+        totalWeight += 1.0f;
     }
     float averageWeight = totalWeight / (number + 1);
     float minThreshold  = averageWeight * (1.0f - margin/100.0f);
@@ -86,9 +86,6 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
     free(isUnassigned);
 
     Graph *newGraph = createGraph(vertexCount, edgeCount);
-    for (int i = 0; i < vertexCount; i++) {
-        newGraph->vertices[i].weight = originalGraph->vertices[i].weight;
-    }
 
     int newEdgeCount = 0;
     for (int origEdgeIndex = 0; origEdgeIndex < edgeCount; origEdgeIndex++) {
