@@ -13,12 +13,13 @@
 #include <math.h>
 
 Graph *splitGraph(Graph *originalGraph, int number, float margin) {
+    number++;
     Graph *balancedGraph = copyGraph(originalGraph);
 
     // Tablica do oznaczania odwiedzonych wierzchołków
     bool *visited = calloc(originalGraph->numVertices, sizeof(bool));
     int *component = calloc(originalGraph->numVertices, sizeof(int));
-    // oznacz wszystkie wierzchołki jako nieprzypisane
+    // Oznacz wszystkie wierzchołki jako nieprzypisane
     for (int v = 0; v < originalGraph->numVertices; v++) {
         component[v] = -1;
     }
@@ -32,7 +33,7 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
         desiredSizes[c] = baseSize + (c < remainder ? 1 : 0);
     }
 
-    // wieloźródłowy BFS: ziarno od wierzchołków o największym stopniu
+    // Wieloźródłowy BFS: ziarno od wierzchołków o największym stopniu
     int *compSize = calloc(number, sizeof(int));
     int *degree = calloc(totalV, sizeof(int));
     for (int e = 0; e < originalGraph->numEdges; e++) {
@@ -67,7 +68,7 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
     free(seeded);
     free(degree);
 
-    // rozszerzanie BFS aż składowe osiągną zadane rozmiary
+    // Rozszerzanie BFS aż składowe osiągną zadane rozmiary
     while (head < tail) {
         Entry cur = queue[head++];
         int comp = cur.comp;
@@ -95,7 +96,7 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
     free(compSize);
     free(desiredSizes);
 
-    // zachowaj tylko krawędzie wewnątrz tej samej składowej
+    // Zachowaj tylko krawędzie wewnątrz tej samej składowej
     int newEdgeCount = 0;
     for (int e = 0; e < originalGraph->numEdges; e++) {
         int s = originalGraph->edges[e].src;
@@ -106,32 +107,30 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
     }
     balancedGraph->numEdges = newEdgeCount;
 
-    // połącz pozostałe wierzchołki poprzez jedną z ich oryginalnych krawędzi
-    {
-        bool added = true;
-        int iter = 0;
-        while (added && iter < totalV) {
-            added = false;
-            for (int e = 0; e < originalGraph->numEdges; e++) {
-                int s = originalGraph->edges[e].src;
-                int d = originalGraph->edges[e].dest;
-                if (component[s] >= 0 && component[d] < 0) {
-                    component[d] = component[s];
-                    balancedGraph->edges[newEdgeCount++] = originalGraph->edges[e];
-                    added = true;
-                }
-                else if (component[d] >= 0 && component[s] < 0) {
-                    component[s] = component[d];
-                    balancedGraph->edges[newEdgeCount++] = originalGraph->edges[e];
-                    added = true;
-                }
+    // Połącz pozostałe wierzchołki poprzez jedną z ich oryginalnych krawędzi
+    bool added = true;
+    int iter = 0;
+    while (added && iter < totalV) {
+        added = false;
+        for (int e = 0; e < originalGraph->numEdges; e++) {
+            int s = originalGraph->edges[e].src;
+            int d = originalGraph->edges[e].dest;
+            if (component[s] >= 0 && component[d] < 0) {
+                component[d] = component[s];
+                balancedGraph->edges[newEdgeCount++] = originalGraph->edges[e];
+                added = true;
             }
-            iter++;
+            else if (component[d] >= 0 && component[s] < 0) {
+                component[s] = component[d];
+                balancedGraph->edges[newEdgeCount++] = originalGraph->edges[e];
+                added = true;
+            }
         }
-        balancedGraph->numEdges = newEdgeCount;
+        iter++;
     }
+    balancedGraph->numEdges = newEdgeCount;
 
-    // oblicz wielkości składowych i udziały, zwróć NULL jeśli przekroczono margines
+    // Oblicz wielkości składowych i udziały, zwróć NULL jeśli przekroczono margines
     {
         int *compCounts = calloc(number, sizeof(int));
         for (int v = 0; v < totalV; v++)
@@ -154,5 +153,6 @@ Graph *splitGraph(Graph *originalGraph, int number, float margin) {
 
     free(visited);
     free(component);
+    balancedGraph->splitCount = number-1;
     return balancedGraph;
 }

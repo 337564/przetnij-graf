@@ -42,6 +42,7 @@ void freeGraph(Graph *graph) {
 
 
 Graph *graphFromString(const char *str) {
+    // Kopiujemy wejściowy string, aby nie modyfikować oryginału
     char *buf = _strdup(str);
     if (!buf) return NULL;
 
@@ -49,6 +50,7 @@ Graph *graphFromString(const char *str) {
     line = strtok_r(buf, "\r\n", &save1);
     if (!line) { free(buf); return NULL; }
 
+    // Parsujemy wiersze: pobieramy ID wierzchołków z drugiej linii
     line = strtok_r(NULL, "\r\n", &save1);
     if (!line) { free(buf); return NULL; }
     int *rowNodes = NULL, rowCount = 0;
@@ -69,6 +71,7 @@ Graph *graphFromString(const char *str) {
         grpNodes[grpNodeCount++] = atoi(tok);
     }
 
+    // Parsujemy pozycje grup: granice w tablicy grpNodes
     line = strtok_r(NULL, "\r\n", &save1);
     if (!line) { free(grpNodes); free(rowNodes); free(buf); return NULL; }
     int *grpPos = NULL, grpPosCount = 0;
@@ -81,6 +84,7 @@ Graph *graphFromString(const char *str) {
     int numGroups   = grpPosCount - 1;
     char *adj = calloc(numVertices * numVertices, 1);
 
+    // Budujemy macierz sąsiedztwa: łączymy węzły w tej samej grupie
     for (int g = 0; g < numGroups; g++) {
         int start = grpPos[g], end = grpPos[g+1];
         for (int i = start; i < end; i++) {
@@ -94,6 +98,7 @@ Graph *graphFromString(const char *str) {
         }
     }
 
+    // Zliczamy krawędzie w górnym trójkącie macierzy (i<j)
     int edgeCount = 0;
     for (int i = 0; i < numVertices; i++)
         for (int j = i+1; j < numVertices; j++)
@@ -101,6 +106,7 @@ Graph *graphFromString(const char *str) {
 
     Graph *graph = createGraph(numVertices, edgeCount);
 
+    // Przepisujemy krawędzie do struktury Graph
     int idx = 0;
     for (int i = 0; i < numVertices; i++) {
         for (int j = i+1; j < numVertices; j++) {
@@ -121,6 +127,7 @@ Graph *graphFromString(const char *str) {
 }
 
 char *graphToString(const Graph *graph) {
+    // Obliczamy stopnie wierzchołków
     int V = graph->numVertices;
     int E = graph->numEdges;
 
@@ -140,12 +147,14 @@ char *graphToString(const Graph *graph) {
         adj[v][degree[v]++] = u;
     }
 
+    // Obliczamy pozycje wierszy (CSR row pointers)
     int *rowPos = malloc((V + 1) * sizeof(int));
     rowPos[0] = 0;
     for (int i = 0; i < V; i++)
         rowPos[i + 1] = rowPos[i] + degree[i];
     int totalAdj = rowPos[V];
 
+    // Wypełniamy tablicę rowNodes listami sąsiadów
     int *rowNodes = malloc(totalAdj * sizeof(int));
     for (int i = 0; i < V; i++) {
         for (int j = 0; j < degree[i]; j++)
@@ -154,6 +163,7 @@ char *graphToString(const Graph *graph) {
     }
     free(adj);
 
+    // Wyznaczamy spójne składowe grafu (DFS na CSR)
     int *comp = malloc(V * sizeof(int));
     for (int i = 0; i < V; i++) comp[i] = -1;
     int *stack = malloc(V * sizeof(int));
@@ -178,6 +188,7 @@ char *graphToString(const Graph *graph) {
     }
     free(stack);
 
+    // Przygotowujemy pozycje grup i listę wierzchołków grup
     int *groupSize = calloc(compCount, sizeof(int));
     for (int i = 0; i < V; i++)
         groupSize[comp[i]]++;
@@ -197,6 +208,7 @@ char *graphToString(const Graph *graph) {
     free(groupSize);
     free(comp);
 
+    // Formatujemy finalny string z reprezentacją grafu
     int totalNums = totalAdj + (V + 1) + V + (compCount + 1);
     size_t bufSize = (size_t)totalNums * 12 + 128;
     char *out = malloc(bufSize);
