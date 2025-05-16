@@ -3,6 +3,23 @@
 #include <string.h>
 #include "graph.h"
 
+static char *strtok_r(char *s, const char *delim, char **saveptr) {
+    char *token;
+    if (s) *saveptr = s;
+    if (!*saveptr) return NULL;
+    char *start = *saveptr + strspn(*saveptr, delim);
+    if (!*start) { *saveptr = NULL; return NULL; }
+    token = start;
+    char *end = start + strcspn(start, delim);
+    if (*end) {
+        *end = '\0';
+        *saveptr = end + 1;
+    } else {
+        *saveptr = NULL;
+    }
+    return token;
+}
+
 Graph *createGraph(int numVertices, int numEdges) {
     Graph *graph = (Graph *)malloc(sizeof(Graph));
     graph->numVertices = numVertices;
@@ -23,43 +40,198 @@ void freeGraph(Graph *graph) {
     }
 }
 
+
 Graph *graphFromString(const char *str) {
-    int splitCount, numVertices, numEdges;
-    sscanf(str, "%d %d %d", &splitCount, &numVertices, &numEdges);
+    char *buf = _strdup(str);
+    if (!buf) return NULL;
 
-    Graph *graph = createGraph(numVertices, numEdges);
-    graph->splitCount = splitCount;
+    char *line, *save1;
+    line = strtok_r(buf, "\r\n", &save1);
+    if (!line) { free(buf); return NULL; }
 
-    const char *edgesStart = strchr(str, '\n') + 1;
-
-    char *edgesLine = strdup(edgesStart);
-
-    char *token = strtok(edgesLine, ",");
-    for (int i = 0; i < numEdges; i++) {
-        sscanf(token, "%d-%d", &graph->edges[i].src, &graph->edges[i].dest);
-        token = strtok(NULL, ",");
+    line = strtok_r(NULL, "\r\n", &save1);
+    if (!line) { free(buf); return NULL; }
+    int *rowNodes = NULL, rowCount = 0;
+    char *tok, *save2;
+    for (tok = strtok_r(line, ";", &save2); tok; tok = strtok_r(NULL, ";", &save2)) {
+        rowNodes = realloc(rowNodes, sizeof(*rowNodes)*(rowCount+1));
+        rowNodes[rowCount++] = atoi(tok);
     }
 
-    free(edgesLine);
+    line = strtok_r(NULL, "\r\n", &save1);
+    if (!line) { free(rowNodes); free(buf); return NULL; }
 
+    line = strtok_r(NULL, "\r\n", &save1);
+    if (!line) { free(rowNodes); free(buf); return NULL; }
+    int *grpNodes = NULL, grpNodeCount = 0;
+    for (tok = strtok_r(line, ";", &save2); tok; tok = strtok_r(NULL, ";", &save2)) {
+        grpNodes = realloc(grpNodes, sizeof(*grpNodes)*(grpNodeCount+1));
+        grpNodes[grpNodeCount++] = atoi(tok);
+    }
+
+    line = strtok_r(NULL, "\r\n", &save1);
+    if (!line) { free(grpNodes); free(rowNodes); free(buf); return NULL; }
+    int *grpPos = NULL, grpPosCount = 0;
+    for (tok = strtok_r(line, ";", &save2); tok; tok = strtok_r(NULL, ";", &save2)) {
+        grpPos = realloc(grpPos, sizeof(*grpPos)*(grpPosCount+1));
+        grpPos[grpPosCount++] = atoi(tok);
+    }
+
+    int numVertices = rowCount;
+    int numGroups   = grpPosCount - 1;
+    char *adj = calloc(numVertices * numVertices, 1);
+
+    for (int g = 0; g < numGroups; g++) {
+        int start = grpPos[g], end = grpPos[g+1];
+        for (int i = start; i < end; i++) {
+            for (int j = i+1; j < end; j++) {
+                int v1 = grpNodes[i], v2 = grpNodes[j];
+                if (v1>=0 && v1<numVertices && v2>=0 && v2<numVertices) {
+                    adj[v1*numVertices + v2] = 1;
+                    adj[v2*numVertices + v1] = 1;
+                }
+            }
+        }
+    }
+
+    int edgeCount = 0;
+    for (int i = 0; i < numVertices; i++)
+        for (int j = i+1; j < numVertices; j++)
+            if (adj[i*numVertices + j]) edgeCount++;
+
+    Graph *graph = createGraph(numVertices, edgeCount);
+
+    int idx = 0;
+    for (int i = 0; i < numVertices; i++) {
+        for (int j = i+1; j < numVertices; j++) {
+            if (adj[i*numVertices + j]) {
+                graph->edges[idx].src  = i;
+                graph->edges[idx].dest = j;
+                idx++;
+            }
+        }
+    }
+
+    free(adj);
+    free(grpPos);
+    free(grpNodes);
+    free(rowNodes);
+    free(buf);
     return graph;
 }
 
 char *graphToString(const Graph *graph) {
-    int bufferSize = 128 + graph->numVertices * 16 + graph->numEdges * 8;
-    char *buffer = (char *)malloc(bufferSize);
-    char *ptr = buffer;
+    int V = graph->numVertices;
+    int E = graph->numEdges;
 
-    ptr += sprintf(ptr, "%d %d %d\n", graph->splitCount, graph->numVertices, graph->numEdges);
-
-    for (int i = 0; i < graph->numEdges; i++) {
-        ptr += sprintf(ptr, "%d-%d", graph->edges[i].src, graph->edges[i].dest);
-        if (i < graph->numEdges - 1) {
-            ptr += sprintf(ptr, ",");
-        }
+    int *degree = calloc(V, sizeof(int));
+    for (int i = 0; i < E; i++) {
+        degree[graph->edges[i].src]++;
+        degree[graph->edges[i].dest]++;
+    }
+    int **adj = malloc(V * sizeof(int *));
+    for (int i = 0; i < V; i++) {
+        adj[i] = malloc(degree[i] * sizeof(int));
+        degree[i] = 0;
+    }
+    for (int i = 0; i < E; i++) {
+        int u = graph->edges[i].src, v = graph->edges[i].dest;
+        adj[u][degree[u]++] = v;
+        adj[v][degree[v]++] = u;
     }
 
-    return buffer;
+    int *rowPos = malloc((V + 1) * sizeof(int));
+    rowPos[0] = 0;
+    for (int i = 0; i < V; i++)
+        rowPos[i + 1] = rowPos[i] + degree[i];
+    int totalAdj = rowPos[V];
+
+    int *rowNodes = malloc(totalAdj * sizeof(int));
+    for (int i = 0; i < V; i++) {
+        for (int j = 0; j < degree[i]; j++)
+            rowNodes[rowPos[i] + j] = adj[i][j];
+        free(adj[i]);
+    }
+    free(adj);
+
+    int *comp = malloc(V * sizeof(int));
+    for (int i = 0; i < V; i++) comp[i] = -1;
+    int *stack = malloc(V * sizeof(int));
+    int compCount = 0;
+    for (int i = 0; i < V; i++) {
+        if (comp[i] < 0) {
+            int sp = 0;
+            stack[sp++] = i;
+            comp[i] = compCount;
+            while (sp) {
+                int u = stack[--sp];
+                for (int k = rowPos[u]; k < rowPos[u + 1]; k++) {
+                    int v = rowNodes[k];
+                    if (comp[v] < 0) {
+                        comp[v] = compCount;
+                        stack[sp++] = v;
+                    }
+                }
+            }
+            compCount++;
+        }
+    }
+    free(stack);
+
+    int *groupSize = calloc(compCount, sizeof(int));
+    for (int i = 0; i < V; i++)
+        groupSize[comp[i]]++;
+    int *grpPos = malloc((compCount + 1) * sizeof(int));
+    grpPos[0] = 0;
+    for (int g = 0; g < compCount; g++)
+        grpPos[g + 1] = grpPos[g] + groupSize[g];
+
+    int *grpNodes = malloc(V * sizeof(int));
+    for (int g = 0; g < compCount; g++)
+        groupSize[g] = 0;
+    for (int i = 0; i < V; i++) {
+        int g = comp[i];
+        int idx = grpPos[g] + (groupSize[g]++);
+        grpNodes[idx] = i;
+    }
+    free(groupSize);
+    free(comp);
+
+    int totalNums = totalAdj + (V + 1) + V + (compCount + 1);
+    size_t bufSize = (size_t)totalNums * 12 + 128;
+    char *out = malloc(bufSize);
+    int pos = 0;
+
+    pos += snprintf(out + pos, bufSize - pos, "%d\n", V);
+
+    for (int i = 0; i < totalAdj; i++)
+        pos += snprintf(out + pos, bufSize - pos,
+                        i + 1 < totalAdj ? "%d;" : "%d\n",
+                        rowNodes[i]);
+
+    for (int i = 0; i <= V; i++)
+        pos += snprintf(out + pos, bufSize - pos,
+                        i + 1 <= V ? "%d;" : "%d\n",
+                        rowPos[i]);
+
+    for (int i = 0; i < V; i++)
+        pos += snprintf(out + pos, bufSize - pos,
+                        i + 1 < V ? "%d;" : "%d\n",
+                        grpNodes[i]);
+
+    for (int i = 0; i <= compCount; i++)
+        pos += snprintf(out + pos, bufSize - pos,
+                        i < compCount ? "%d;" : "%d",
+                        grpPos[i]);
+
+    pos += snprintf(out + pos, bufSize - pos, "\n%d", graph->splitCount);
+
+    free(rowPos);
+    free(rowNodes);
+    free(grpPos);
+    free(grpNodes);
+
+    return out;
 }
 
 Graph *graphFromTextFile(const char *filename) {

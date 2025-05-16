@@ -1,6 +1,7 @@
 import struct
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 def read_graph_from_binary_file(filename):
     with open(filename, "rb") as file:
@@ -29,9 +30,31 @@ def visualize_graph(num_vertices, edges):
     G.add_edges_from(edges)
 
     pos = nx.spring_layout(G)
+
+    comps = list(nx.connected_components(G))
+    cmap = cm.get_cmap("tab20")
+    colors = [cmap(i) for i in range(len(comps))]
+    color_map = {}
+    for idx, comp in enumerate(comps):
+        for node in comp:
+            color_map[node] = colors[idx]
+    node_colors = [color_map[node] for node in G.nodes()]
+
     node_labels = {i: f"{i}" for i in range(num_vertices)}
-    nx.draw(G, pos, with_labels=True, labels=node_labels, node_color="lightblue", node_size=2000, font_size=10)
-    nx.draw_networkx_edge_labels(G, pos, edge_labels={(src, dest): "" for src, dest in edges})
+    nx.draw(
+        G,
+        pos,
+        with_labels=True,
+        labels=node_labels,
+        node_color=node_colors,
+        node_size=2000,
+        font_size=10
+    )
+    nx.draw_networkx_edge_labels(
+        G,
+        pos,
+        edge_labels={(src, dest): "" for src, dest in edges}
+    )
     plt.title("Graph Visualization")
     plt.show()
 
