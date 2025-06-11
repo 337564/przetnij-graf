@@ -10,7 +10,7 @@ public class Graph {
     public int splitCount;
     
     // Store segment information for each node
-    private int[] segments;
+    private final int[] segments;
 
     public Graph(int numVertices, int numEdges) {
         this.numVertices = numVertices;
