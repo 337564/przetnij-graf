@@ -61,7 +61,7 @@ public class Main {
                 // Terminal output
                 if (terminalOutput) {
                     System.out.println("Split Graph:");
-                    System.out.println(GraphIO.toString(split));
+                    System.out.println(split.toString()); // Changed to use Graph.toString()
                 }
 
             } catch (IOException e) {

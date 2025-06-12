@@ -2,25 +2,50 @@ package przetnij.graf;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class Graph {
     public final int numVertices;
-    public final int numEdges;
     public final List<Edge> edges;
     public int splitCount;
     
+    // Store layout information
+    public final int maxNodesPerRow;
+    public final int[] nodeIndexes;
+    public final int[] rowPointers;
+    public final Set<Integer> presentNodes;
+
     // Store segment information for each node
     private final int[] segments;
 
-    public Graph(int numVertices, int numEdges) {
+    public Graph(int numVertices, int maxNodesPerRow, int[] nodeIndexes, int[] rowPointers, Set<Integer> presentNodes) {
         this.numVertices = numVertices;
-        this.numEdges = numEdges;
-        this.edges = new ArrayList<>(numEdges);
+        this.edges = new ArrayList<>();
         this.splitCount = -1;
         this.segments = new int[numVertices];
+        this.maxNodesPerRow = maxNodesPerRow;
+        this.nodeIndexes = nodeIndexes;
+        this.rowPointers = rowPointers;
+        this.presentNodes = presentNodes;
+    }
+
+    // Legacy constructor for compatibility
+    public Graph(int numVertices, int numEdges) {
+        this(numVertices, 0, new int[0], new int[0], null);
+    }
+
+    // Legacy constructor for compatibility
+    public Graph(int numVertices, int numEdges, Set<Integer> presentNodes) {
+        this(numVertices, 0, new int[0], new int[0], presentNodes);
     }
 
     public void addEdge(int src, int dest) {
+        // Ensure we don't add duplicate edges in case the input format is redundant
+        for (Edge edge : edges) {
+            if ((edge.src == src && edge.dest == dest) || (edge.src == dest && edge.dest == src)) {
+                return;
+            }
+        }
         edges.add(new Edge(src, dest));
     }
     
@@ -54,7 +79,7 @@ public class Graph {
     public String toString() {
         return "Graph{" +
                 "vertices=" + numVertices +
-                ", edges=" + numEdges +
+                ", edges=" + getEdgeCount() +
                 ", splitCount=" + splitCount +
                 '}';
     }

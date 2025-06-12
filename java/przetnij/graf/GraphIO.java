@@ -2,89 +2,94 @@ package przetnij.graf;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GraphIO {
-    
     public static Graph fromTextFile(String filename) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-            StringBuilder content = new StringBuilder();
+            // 1. Max nodes per row (layout info)
+            String maxNodesPerRowLine = reader.readLine();
+            int maxNodesPerRow = maxNodesPerRowLine != null ? Integer.parseInt(maxNodesPerRowLine.trim()) : 0;
+
+            // 2. Node indexes in rows (all nodes in graph)
+            String nodeIndexesLine = reader.readLine();
+            if (nodeIndexesLine == null) throw new IOException("Missing node indexes line.");
+            int[] nodeIndexes = parseSemicolonSeparated(nodeIndexesLine);
+            
+            // 3. Row pointers to node indexes
+            String rowPointersLine = reader.readLine();
+            if (rowPointersLine == null) throw new IOException("Missing row pointers line.");
+            int[] rowPointers = parseSemicolonSeparated(rowPointersLine);
+
+            // 4. Group nodes (nodes connected by edges)
+            String groupNodesLine = reader.readLine();
+            if (groupNodesLine == null) throw new IOException("Missing group nodes line.");
+            int[] groupNodes = parseSemicolonSeparated(groupNodesLine);
+
+            // 5. Group pointers (can be multiple lines for multiple graphs)
+            List<int[]> groupPointersList = new ArrayList<>();
             String line;
-            while ((line = reader.readLine()) != null) {
-                content.append(line).append("\n");
+            while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
+                groupPointersList.add(parseSemicolonSeparated(line));
             }
-            return fromString(content.toString());
-        }
-    }
 
-    public static Graph fromString(String str) {
-        String[] lines = str.split("\\r?\\n");
-        if (lines.length < 3) return null;  // Reduced from 5 to 3 since we only need 3 lines now
-
-        int numVertices = Integer.parseInt(lines[0]);
-        
-        // Parse group nodes
-        String[] grpNodesStr = lines[1].split(";");  // Changed from lines[3] to lines[1]
-        int[] grpNodes = Arrays.stream(grpNodesStr).mapToInt(Integer::parseInt).toArray();
-
-        // Parse group positions
-        String[] grpPosStr = lines[2].split(";");  // Changed from lines[4] to lines[2]
-        int[] grpPos = Arrays.stream(grpPosStr).mapToInt(Integer::parseInt).toArray();
-
-        // Create adjacency matrix
-        boolean[][] adj = new boolean[numVertices][numVertices];
-        int numGroups = grpPos.length - 1;
-        
-        for (int g = 0; g < numGroups; g++) {
-            int start = grpPos[g];
-            int end = grpPos[g + 1];
-            for (int i = start; i < end; i++) {
-                for (int j = i + 1; j < end; j++) {
-                    int v1 = grpNodes[i];
-                    int v2 = grpNodes[j];
-                    if (v1 >= 0 && v1 < numVertices && v2 >= 0 && v2 < numVertices) {
-                        adj[v1][v2] = true;
-                        adj[v2][v1] = true;
+            // Create graph with layout info
+            Set<Integer> presentNodes = Arrays.stream(nodeIndexes).boxed().collect(Collectors.toSet());
+            Graph graph = new Graph(nodeIndexes.length, maxNodesPerRow, nodeIndexes, rowPointers, presentNodes);
+            
+            // Add edges from groups
+            for (int[] groupPointers : groupPointersList) {
+                for (int i = 0; i < groupPointers.length - 1; i++) {
+                    int start = groupPointers[i];
+                    int end = groupPointers[i + 1];
+                    
+                    // Add edges between all nodes in this group
+                    for (int j = start; j < end; j++) {
+                        for (int k = j + 1; k < end; k++) {
+                            if (j < groupNodes.length && k < groupNodes.length) {
+                                graph.addEdge(groupNodes[j], groupNodes[k]);
+                            }
+                        }
                     }
                 }
             }
+            
+            return graph;
         }
-
-        // Count edges
-        int edgeCount = 0;
-        for (int i = 0; i < numVertices; i++) {
-            for (int j = i + 1; j < numVertices; j++) {
-                if (adj[i][j]) edgeCount++;
-            }
-        }
-
-        // Create graph
-        Graph graph = new Graph(numVertices, edgeCount);
-        for (int i = 0; i < numVertices; i++) {
-            for (int j = i + 1; j < numVertices; j++) {
-                if (adj[i][j]) {
-                    graph.addEdge(i, j);
-                }
-            }
-        }
-
-        return graph;
+    }
+    
+    private static int[] parseSemicolonSeparated(String line) {
+        return Arrays.stream(line.trim().split(";"))
+                     .mapToInt(Integer::parseInt)
+                     .toArray();
     }
 
     public static void toTextFile(Graph graph, String filename) throws IOException {
         try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
-            writer.print(toString(graph));
+            // 1. Max nodes per row
+            writer.println(graph.maxNodesPerRow);
+            
+            // 2. Node indexes
+            writer.println(Arrays.stream(graph.nodeIndexes)
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining(";")));
+            
+            // 3. Row pointers
+            writer.println(Arrays.stream(graph.rowPointers)
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining(";")));
+            
+            // 4. Group nodes (simplified - all nodes)
+            int[] allNodes = new int[graph.numVertices];
+            for (int i = 0; i < graph.numVertices; i++) {
+                allNodes[i] = i;
+            }
+            writer.println(Arrays.stream(allNodes)
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining(";")));
+            
+            // 5. Group pointers (single group for now)
+            writer.println("0;" + graph.numVertices);
         }
-    }
-
-    public static String toString(Graph graph) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(graph.numVertices).append("\n");
-        
-        // Simplified representation for demo
-        for (Edge edge : graph.edges) {
-            sb.append(edge.src).append(";").append(edge.dest).append("\n");
-        }
-        
-        return sb.toString();
     }
 }

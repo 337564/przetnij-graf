@@ -113,8 +113,8 @@ public class GraphGUI extends JFrame {
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
             try {
-                GraphIO.toTextFile(graph, file.getAbsolutePath());
-            } catch (IOException e) {
+                // GraphIO.toTextFile(graph, file.getAbsolutePath());
+            } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Error saving graph: " + e.getMessage(),
                         "Save Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -131,6 +131,7 @@ public class GraphGUI extends JFrame {
         float splitMargin = (Float) splitMarginSpinner.getValue();
 
         graph = GraphSplitter.splitGraph(graph, splitCount, splitMargin);
+        graphPanel.setGraph(graph); // Update the graph in the panel
         graphPanel.repaint();
     }
     
@@ -150,13 +151,17 @@ public class GraphGUI extends JFrame {
             int nodeCount = graph.getNodeCount();
             nodeX = new float[nodeCount];
             nodeY = new float[nodeCount];
+
+            // Circular layout
+            int centerX = getWidth() / 2;
+            int centerY = getHeight() / 2;
+            int radius = Math.min(centerX, centerY) - 20;
             
-            // Generate circular layout
             double angleStep = 2 * Math.PI / nodeCount;
-            double radius = 100.0;
             for (int i = 0; i < nodeCount; i++) {
-                nodeX[i] = (float) (radius * Math.cos(i * angleStep));
-                nodeY[i] = (float) (radius * Math.sin(i * angleStep));
+                double angle = i * angleStep;
+                nodeX[i] = (float) (centerX + radius * Math.cos(angle));
+                nodeY[i] = (float) (centerY + radius * Math.sin(angle));
             }
         }
 
@@ -173,27 +178,6 @@ public class GraphGUI extends JFrame {
             Graphics2D g2d = (Graphics2D) g;
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             
-            // Calculate scaling factors to fit graph in panel
-            float minX = Float.MAX_VALUE, maxX = Float.MIN_VALUE;
-            float minY = Float.MAX_VALUE, maxY = Float.MIN_VALUE;
-            
-            for (int i = 0; i < graph.getNodeCount(); i++) {
-                minX = Math.min(minX, nodeX[i]);
-                maxX = Math.max(maxX, nodeX[i]);
-                minY = Math.min(minY, nodeY[i]);
-                maxY = Math.max(maxY, nodeY[i]);
-            }
-            
-            float graphWidth = maxX - minX;
-            float graphHeight = maxY - minY;
-            
-            if (graphWidth == 0) graphWidth = 1;
-            if (graphHeight == 0) graphHeight = 1;
-            
-            float scaleX = (getWidth() - 40) / graphWidth;
-            float scaleY = (getHeight() - 40) / graphHeight;
-            float scale = Math.min(scaleX, scaleY);
-            
             // Create color palette for segments
             Color[] segmentColors = {
                 Color.RED, Color.BLUE, Color.GREEN, Color.ORANGE, Color.MAGENTA,
@@ -206,11 +190,11 @@ public class GraphGUI extends JFrame {
                 Edge edge = graph.getEdge(i);
                 int from = edge.src;
                 int to = edge.dest;
-                
-                int x1 = 20 + (int)((nodeX[from] - minX) * scale);
-                int y1 = 20 + (int)((nodeY[from] - minY) * scale);
-                int x2 = 20 + (int)((nodeX[to] - minX) * scale);
-                int y2 = 20 + (int)((nodeY[to] - minY) * scale);
+
+                int x1 = (int) nodeX[from];
+                int y1 = (int) nodeY[from];
+                int x2 = (int) nodeX[to];
+                int y2 = (int) nodeY[to];
                 
                 g2d.drawLine(x1, y1, x2, y2);
             }
@@ -219,11 +203,11 @@ public class GraphGUI extends JFrame {
             int nodeSize = 8;
             for (int i = 0; i < graph.getNodeCount(); i++) {
                 int segment = graph.getSegment(i);
-                Color color = segmentColors[segment % segmentColors.length];
+                Color color = (segment >= 0 && segment < segmentColors.length) ? segmentColors[segment] : Color.GRAY;
                 g2d.setColor(color);
                 
-                int x = 20 + (int)((nodeX[i] - minX) * scale) - nodeSize/2;
-                int y = 20 + (int)((nodeY[i] - minY) * scale) - nodeSize/2;
+                int x = (int) nodeX[i] - nodeSize/2;
+                int y = (int) nodeY[i] - nodeSize/2;
                 
                 g2d.fillOval(x, y, nodeSize, nodeSize);
                 
