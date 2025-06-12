@@ -30,13 +30,24 @@ public class GraphGUI extends JFrame {
 
         // File menu
         JMenu fileMenu = new JMenu("File");
-        JMenuItem loadItem = new JMenuItem("Load Graph");
-        loadItem.addActionListener(e -> loadGraph());
-        fileMenu.add(loadItem);
+        
+        // Text file operations
+        JMenuItem loadTextItem = new JMenuItem("Load Text Graph");
+        loadTextItem.addActionListener(e -> loadTextGraph());
+        fileMenu.add(loadTextItem);
 
-        JMenuItem saveItem = new JMenuItem("Save Graph");
-        saveItem.addActionListener(e -> saveGraph());
-        fileMenu.add(saveItem);
+        JMenuItem saveTextItem = new JMenuItem("Save Text Graph");
+        saveTextItem.addActionListener(e -> saveTextGraph());
+        fileMenu.add(saveTextItem);
+        
+        // Binary file operations
+        JMenuItem loadBinaryItem = new JMenuItem("Load Binary Graph");
+        loadBinaryItem.addActionListener(e -> loadBinaryGraph());
+        fileMenu.add(loadBinaryItem);
+
+        JMenuItem saveBinaryItem = new JMenuItem("Save Binary Graph");
+        saveBinaryItem.addActionListener(e -> saveBinaryGraph());
+        fileMenu.add(saveBinaryItem);
 
         fileMenu.addSeparator();
         
@@ -51,6 +62,12 @@ public class GraphGUI extends JFrame {
         JCheckBoxMenuItem toolPanelItem = new JCheckBoxMenuItem("Show Tool Panel", true);
         toolPanelItem.addActionListener(e -> toolBar.setVisible(toolPanelItem.isSelected()));
         viewMenu.add(toolPanelItem);
+
+        viewMenu.addSeparator();
+        JMenuItem refreshItem = new JMenuItem("Refresh");
+        refreshItem.addActionListener(e -> graphPanel.refresh());
+        viewMenu.add(refreshItem);
+
         menuBar.add(viewMenu);
 
         setJMenuBar(menuBar);
@@ -68,7 +85,7 @@ public class GraphGUI extends JFrame {
         toolBar.addSeparator();
 
         // Split margin control
-        toolBar.add(new JLabel("Split Margin:"));
+        toolBar.add(new JLabel("Split Margin [%]:"));
         // Use float values for margin
         splitMarginSpinner = new JSpinner(new SpinnerNumberModel(0.0f, 0.0f, 100.0f, 0.1f));
         toolBar.add(splitMarginSpinner);
@@ -88,7 +105,7 @@ public class GraphGUI extends JFrame {
         add(graphPanel, BorderLayout.CENTER);
     }
 
-    private void loadGraph() {
+    private void loadTextGraph() {
         JFileChooser fileChooser = new JFileChooser();
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
@@ -97,13 +114,13 @@ public class GraphGUI extends JFrame {
                 graphPanel.setGraph(graph);
                 graphPanel.repaint();
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Error loading graph: " + e.getMessage(),
+                JOptionPane.showMessageDialog(this, "Error loading text graph: " + e.getMessage(),
                         "Load Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
-
-    private void saveGraph() {
+    
+    private void saveTextGraph() {
         if (graph == null) {
             JOptionPane.showMessageDialog(this, "No graph loaded!", "Save Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -113,9 +130,42 @@ public class GraphGUI extends JFrame {
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
             try {
-                // GraphIO.toTextFile(graph, file.getAbsolutePath());
+                GraphIO.toTextFile(graph, file.getAbsolutePath());
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error saving graph: " + e.getMessage(),
+                JOptionPane.showMessageDialog(this, "Error saving text graph: " + e.getMessage(),
+                        "Save Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    private void loadBinaryGraph() {
+        JFileChooser fileChooser = new JFileChooser();
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try {
+                graph = GraphIO.fromBinaryFile(file.getAbsolutePath());
+                graphPanel.setGraph(graph);
+                graphPanel.repaint();
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error loading binary graph: " + e.getMessage(),
+                        "Load Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    private void saveBinaryGraph() {
+        if (graph == null) {
+            JOptionPane.showMessageDialog(this, "No graph loaded!", "Save Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try {
+                GraphIO.toBinaryFile(graph, file.getAbsolutePath());
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error saving binary graph: " + e.getMessage(),
                         "Save Error", JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -145,6 +195,13 @@ public class GraphGUI extends JFrame {
             if (graph != null) {
                 generateLayout();
             }
+        }
+
+        public void refresh() {
+            if (graph != null) {
+                generateLayout();
+            }
+            repaint();
         }
         
         private void generateLayout() {

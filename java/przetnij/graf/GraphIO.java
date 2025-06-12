@@ -92,4 +92,41 @@ public class GraphIO {
             writer.println("0;" + graph.numVertices);
         }
     }
+    
+    public static Graph fromBinaryFile(String filename) throws IOException {
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(filename))) {
+            // Read header
+            int numVertices = dis.readInt();
+            int numEdges = dis.readInt();
+            int splitCount = dis.readInt();
+            
+            // Create graph
+            Graph graph = new Graph(numVertices, numEdges);
+            graph.splitCount = splitCount;
+            
+            // Read edges
+            for (int i = 0; i < numEdges; i++) {
+                int src = dis.readInt();
+                int dest = dis.readInt();
+                graph.addEdge(src, dest);
+            }
+            
+            return graph;
+        }
+    }
+    
+    public static void toBinaryFile(Graph graph, String filename) throws IOException {
+        try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(filename))) {
+            // Write header
+            dos.writeInt(graph.numVertices);
+            dos.writeInt(graph.edges.size());
+            dos.writeInt(graph.splitCount);
+            
+            // Write edges
+            for (Edge edge : graph.edges) {
+                dos.writeInt(edge.src);
+                dos.writeInt(edge.dest);
+            }
+        }
+    }
 }
